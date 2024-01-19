@@ -139,6 +139,7 @@ contract PlonkVerifier {
     // -------- errors
     uint256 private constant ERROR_STRING_ID = 0x08c379a000000000000000000000000000000000000000000000000000000000; // selector for function Error(string)
 
+
     // -------- utils (for hash_fr)
     uint256 private constant HASH_FR_BB = 340282366920938463463374607431768211456; // 2**128
     uint256 private constant HASH_FR_ZERO_UINT256 = 0;
@@ -179,7 +180,7 @@ contract PlonkVerifier {
 
             // evaluation of Z=Xⁿ-1 at ζ, we save this value
             let zeta := mload(add(mem, STATE_ZETA))
-            let zeta_power_n_minus_one := addmod(pow(zeta, calldataload(vk.offset), freeMem), sub(R_MOD, 1), R_MOD)
+            let zeta_power_n_minus_one := addmod(pow(zeta, calldataload(add(vk.offset, VK_DOMAIN_SIZE)), freeMem), sub(R_MOD, 1), R_MOD)
             mstore(add(mem, STATE_ZETA_POWER_N_MINUS_ONE), zeta_power_n_minus_one)
 
             // public inputs contribution
@@ -404,11 +405,13 @@ contract PlonkVerifier {
                 mstore(add(mPtr, 0x1c0), calldataload(add(avk, VK_QO_COM_Y)))
                 mstore(add(mPtr, 0x1e0), calldataload(add(avk, VK_QK_COM_X)))
                 mstore(add(mPtr, 0x200), calldataload(add(avk, VK_QK_COM_Y)))
+
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
                 {
                     mstore(add(mPtr, add(544, mul(i, 64))), calldataload(add(avk, add(VK_QCP, mul(0x40, i)))))
                     mstore(add(mPtr, add(576, mul(i, 64))), calldataload(add(avk, add(VK_QCP, mul(0x40, add(i, 1))))))
                 }
+
                 // public inputs
                 let _mPtr := add(mPtr, add(mul(constraints, 64), 544))
                 let size_pi_in_bytes := mul(nb_pi, 0x20)
@@ -473,12 +476,14 @@ contract PlonkVerifier {
                 let _mPtr := add(mPtr, 0x20)
                 mstore(_mPtr, beta_not_reduced)
                 _mPtr := add(_mPtr, 0x20)
+
                 // Bsb22Commitments
                 let proof_bsb_commitments := add(aproof, add(mul(constraints, 32), 832))
                 let size_bsb_commitments := mul(0x40, constraints)
                 calldatacopy(_mPtr, proof_bsb_commitments, size_bsb_commitments)
                 _mPtr := add(_mPtr, size_bsb_commitments)
                 full_size := add(full_size, size_bsb_commitments)
+
                 // [Z], the commitment to the grand product polynomial
                 calldatacopy(_mPtr, add(aproof, PROOF_GRAND_PRODUCT_COMMITMENT_X), 0x40)
                 let l_success := staticcall(gas(), 0x2, add(mPtr, 0x1b), full_size, mPtr, 0x20)
@@ -597,6 +602,7 @@ contract PlonkVerifier {
                     ins := sub(ins, 0x20)
                 }
             }
+
 
             /// Public inputs (the ones coming from the custom gate) contribution
             /// @param aproof pointer to the proof
@@ -742,12 +748,13 @@ contract PlonkVerifier {
                 res := addmod(res, b1, R_MOD)
 
             }
+
             // END compute_pi -------------------------------------------------
 
             /// @notice compute α² * 1/n * (ζ{n}-1)/(ζ - 1) where
             /// *  α = challenge derived in derive_gamma_beta_alpha_zeta
-            /// * n = VK_DOMAIN_SIZE
-            /// * ω = VK_OMEGA (generator of the multiplicative cyclic group of order n in (ℤ/rℤ)*)
+            /// * n = vk_domain_size
+            /// * ω = vk_omega (generator of the multiplicative cyclic group of order n in (ℤ/rℤ)*)
             /// * ζ = zeta (challenge derived with Fiat Shamir)
             function compute_alpha_square_lagrange_0(avk) {
                 let state := mload(0x40)
@@ -913,7 +920,6 @@ contract PlonkVerifier {
                 mstore(mPtr20, calldataload(add(avk, VK_S2_COM_Y)))
                 point_acc_mul(state_folded_digests, mPtr, acc_gamma, mPtr40)
                 fr_acc_mul_calldata(add(state, STATE_FOLDED_CLAIMED_VALUES), add(aproof, PROOF_S2_AT_ZETA), acc_gamma)
-
                 let poscaz := add(aproof, PROOF_OPENING_QCP_AT_ZETA)
 
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
@@ -1052,10 +1058,10 @@ contract PlonkVerifier {
                     mstore(mPtr, calldataload(commits_api))
                     mstore(add(mPtr, 0x20), calldataload(add(commits_api, 0x20)))
                     point_acc_mul(
-                    add(state, STATE_LINEARISED_POLYNOMIAL_X),
-                    mPtr,
-                    calldataload(commits_api_at_zeta),
-                    add(mPtr, 0x40)
+                        add(state, STATE_LINEARISED_POLYNOMIAL_X),
+                        mPtr,
+                        calldataload(commits_api_at_zeta),
+                        add(mPtr, 0x40)
                     )
                     commits_api_at_zeta := add(commits_api_at_zeta, 0x20)
                     commits_api := add(commits_api, 0x40)
@@ -1075,7 +1081,7 @@ contract PlonkVerifier {
             ///	α*( Z(μζ)(L(ζ)+β*S₁(ζ)+γ)*(R(ζ)+β*S₂(ζ)+γ)[S₃]-[Z](L(ζ)+β*id_{1}(ζ)+γ)*(R(ζ)+β*id_{2(ζ)+γ)*(O(ζ)+β*id_{3}(ζ)+γ) ) +
             ///	α²*L₁(ζ)[Z]
             /// where
-            /// * id_1 = id, id_2 = VK_COSET_SHIFT*id, id_3 = VK_COSET_SHIFT^{2}*id
+            /// * id_1 = id, id_2 = vk_coset_shift*id, id_3 = vk_coset_shift^{2}*id
             /// * the [] means that it's a commitment (i.e. a point on Bn254(F_p))
             /// @param aproof pointer to the proof
             function compute_commitment_linearised_polynomial(aproof, avk, constraints) {
