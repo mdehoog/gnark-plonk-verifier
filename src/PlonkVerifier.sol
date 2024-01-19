@@ -1,5 +1,10 @@
 pragma solidity ^0.8.19;
 
+/// @title PlonkVerifier
+/// @notice Modified version of Gnark's PlonkVerifier contract that supports passing a
+///         verification key as calldata, rather than storing it in the contract. See
+///         https://github.com/Consensys/gnark/blob/e93fa7645f848eed8c24eac5b2bdb44dfa86d824/backend/plonk/bn254/solidity.go
+///         for the original contract template.
 contract PlonkVerifier {
 
     uint256 private constant R_MOD = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
@@ -152,7 +157,7 @@ contract PlonkVerifier {
 
     /// Verify a Plonk proof.
     /// Reverts if the proof or the public inputs are malformed.
-    /// @param vk serialised verification key
+    /// @param vk serialised verification key (using gnark-plonk-verifier's MarshalSolidity)
     /// @param proof serialised plonk proof (using gnark's MarshalSolidity)
     /// @param public_inputs (must be reduced)
     /// @return success true if the proof passes false otherwise
