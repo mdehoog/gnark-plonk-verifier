@@ -7,7 +7,6 @@ import (
 	"io"
 
 	ecc "github.com/consensys/gnark-crypto/ecc/bn254"
-	"github.com/consensys/gnark-crypto/ecc/bn254/fp"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	plonk "github.com/consensys/gnark/backend/plonk/bn254"
 )
@@ -21,23 +20,17 @@ func (vk VerifyingKey) MarshalSolidity() ([]byte, error) {
 		return nil, errors.New("len(vk.Qcp) != len(vk.CommitmentConstraintIndexes)")
 	}
 
-	appendFp := func(writer io.Writer, e *fp.Element) {
-		b := e.Bytes()
-		_, _ = writer.Write(b[:])
-	}
 	appendFr := func(writer io.Writer, e *fr.Element) {
 		b := e.Bytes()
 		_, _ = writer.Write(b[:])
 	}
 	appendG1 := func(writer io.Writer, e *ecc.G1Affine) {
-		appendFp(writer, &e.X)
-		appendFp(writer, &e.Y)
+		b := e.RawBytes()
+		_, _ = writer.Write(b[:])
 	}
 	appendG2 := func(writer io.Writer, e *ecc.G2Affine) {
-		appendFp(writer, &e.X.A1)
-		appendFp(writer, &e.X.A0)
-		appendFp(writer, &e.Y.A1)
-		appendFp(writer, &e.Y.A0)
+		b := e.RawBytes()
+		_, _ = writer.Write(b[:])
 	}
 	appendUint64 := func(writer io.Writer, e uint64) {
 		b := binary.BigEndian.AppendUint64(make([]byte, 24), e)
