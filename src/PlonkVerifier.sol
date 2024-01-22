@@ -54,8 +54,9 @@ contract PlonkVerifier {
     uint256 private constant VK_COSET_SHIFT = 0x3c0;
     
     uint256 private constant VK_NB_CUSTOM_GATES = 0x3e0;
-    uint256 private constant VK_QCP = 0x400;
-//    uint256[] VK_QCP;              // from (0x400) to (0x400 + 0x40 * VK_NB_CUSTOM_GATES)
+    uint256 private constant VK_QCP_X = 0x400;
+    uint256 private constant VK_QCP_Y = 0x420;
+//    uint256[] VK_QCP_X+Y;          // from (0x400) to (0x400 + 0x40 * VK_NB_CUSTOM_GATES)
 //    uint256[] VK_INDEX_COMMIT_API; // from (0x400 + 0x40 * VK_NB_CUSTOM_GATES) to (0x400 + 0x60 * VK_NB_CUSTOM_GATES)
 
     // ------------------------------------------------
@@ -167,7 +168,7 @@ contract PlonkVerifier {
         assembly {
 
             let numConstraints := calldataload(add(vk.offset, VK_NB_CUSTOM_GATES))
-            let vkIndexCommitApi := add(vk.offset, add(VK_QCP, mul(numConstraints, 0x40)))
+            let vkIndexCommitApi := add(vk.offset, add(VK_QCP_X, mul(numConstraints, 0x40)))
             let mem := mload(0x40)
             let freeMem := add(mem, STATE_LAST_MEM)
 
@@ -424,8 +425,8 @@ contract PlonkVerifier {
 
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
                 {
-                    mstore(add(mPtr, add(544, mul(i, 64))), calldataload(add(avk, add(VK_QCP, mul(0x40, i)))))
-                    mstore(add(mPtr, add(576, mul(i, 64))), calldataload(add(avk, add(VK_QCP, mul(0x40, add(i, 1))))))
+                    mstore(add(mPtr, add(544, mul(i, 64))), calldataload(add(avk, add(VK_QCP_X, mul(0x40, i)))))
+                    mstore(add(mPtr, add(576, mul(i, 64))), calldataload(add(avk, add(VK_QCP_Y, mul(0x40, i)))))
                 }
 
                 // public inputs
@@ -633,12 +634,13 @@ contract PlonkVerifier {
 
                 let p := add(aproof, add(mul(constraints, 32), 832))
 
-                let h_fr, ith_lagrange
+                let h_fr
+                let ith_lagrange
 
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
                 {
                     h_fr := hash_fr(calldataload(p), calldataload(add(p, 0x20)), mPtr)
-                    ith_lagrange := compute_ith_lagrange_at_z(z, zpnmo, add(nb_public_inputs, calldataload(add(avk, add(VK_INDEX_COMMIT_API, mul(0x20, i))))), mPtr, avk)
+                    ith_lagrange := compute_ith_lagrange_at_z(z, zpnmo, add(nb_public_inputs, calldataload(add(VK_INDEX_COMMIT_API, mul(0x20, i)))), mPtr, avk)
                     pi_commit := addmod(pi_commit, mulmod(h_fr, ith_lagrange, R_MOD), R_MOD)
                     p := add(p, 0x40)
                 }
@@ -941,8 +943,8 @@ contract PlonkVerifier {
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
                 {
                     acc_gamma := mulmod(acc_gamma, l_gamma_kzg, R_MOD)
-                    mstore(mPtr, calldataload(add(avk, add(VK_QCP, mul(0x40, i)))))
-                    mstore(mPtr20, calldataload(add(avk, add(VK_QCP, mul(0x40, add(i, 1))))))
+                    mstore(mPtr, calldataload(add(avk, add(VK_QCP_X, mul(0x40, i)))))
+                    mstore(mPtr20, calldataload(add(avk, add(VK_QCP_Y, mul(0x40, i)))))
                     point_acc_mul(state_folded_digests, mPtr, acc_gamma, mPtr40)
                     fr_acc_mul_calldata(add(state, STATE_FOLDED_CLAIMED_VALUES), poscaz, acc_gamma)
                     poscaz := add(poscaz, 0x20)
@@ -985,8 +987,8 @@ contract PlonkVerifier {
                 let offset := 0x200
                 for {let i:=0} lt(i, constraints) {i:=add(i,1)}
                 {
-                    mstore(add(mPtr,offset), calldataload(add(avk, add(VK_QCP, mul(0x40, i)))))
-                    mstore(add(mPtr,add(offset, 0x20)), calldataload(add(avk, add(VK_QCP, mul(0x40, add(i, 1))))))
+                    mstore(add(mPtr,offset), calldataload(add(avk, add(VK_QCP_X, mul(0x40, i)))))
+                    mstore(add(mPtr,add(offset, 0x20)), calldataload(add(avk, add(VK_QCP_Y, mul(0x40, i)))))
                     offset := add(offset, 0x40)
                 }
 
